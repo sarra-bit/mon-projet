@@ -1,37 +1,49 @@
 pipeline {
   agent any
   options { timestamps() }
+
   stages {
-    stage('Cloner le dépôt') {
+
+    stage('Checkout') {
       steps {
-        git url: 'https://github.com/sarra-bit/mon-projet.git', branch: 'main'
-      }
-    }
-    stage('Étape 1 : Vérification du dépôt') {
-      steps {
-        bat 'echo === Étape 1 : Vérification du dépôt ==='
+        echo '=== Checkout : récupération du code depuis GitHub ==='
+        checkout scm
         bat 'git status'
       }
     }
-    stage('Étape 2 : Afficher le contenu du projet') {
+
+    stage('Build') {
       steps {
-        bat 'echo === Étape 2 : Afficher le contenu du projet ==='
+        echo '=== Build : préparation du projet ==='
         bat 'dir'
+        bat 'if not exist index.html exit 1'
+        bat 'if not exist style.css exit 1'
+        echo 'Les fichiers index.html et style.css existent'
       }
     }
-    stage('Étape 3 : Simuler un déploiement local') {
+
+    stage('Test') {
       steps {
-        bat 'echo === Étape 3 : Simuler un déploiement local ==='
-        bat 'echo Le fichier index.html est prêt à être affiché'
+        echo '=== Test : vérification du contenu ==='
+        bat 'findstr /C:"<h1>" index.html'
+        bat 'findstr /C:"style.css" index.html'
+        bat 'findstr /C:"font-family" style.css'
+        echo 'Tous les tests sont OK'
       }
     }
-    stage('Étape 4 : Fin du build') {
+
+    stage('Delivery') {
       steps {
-        bat 'echo === Étape 4 : Fin du build ==='
-        bat 'echo SUCCESS'
+        echo '=== Delivery : livraison de l application ==='
+        bat 'if not exist delivery mkdir delivery'
+        bat 'copy index.html delivery\\index.html'
+        bat 'copy style.css delivery\\style.css'
+        archiveArtifacts artifacts: 'delivery/**', fingerprint: true
+        echo 'Application livrée dans le dossier delivery'
       }
     }
   }
+
   post {
     success { echo 'Build OK' }
     failure { echo 'Build KO' }
